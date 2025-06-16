@@ -4,29 +4,29 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.format.annotation.DateTimeFormat;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class TaskSearchValues {
-
     private String title;
-    private Integer completed;
+    private Boolean completed;
     private Long priorityId;
     private Long categoryId;
-    private String email;
-    private Date dateFrom; //для задания периода по датам
-    private Date dateTo;
 
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate dateFrom;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+    private LocalDate dateTo;
 
     private Integer pageNumber;
     private Integer pageSize;
-
     private String sortColumn;
     private String sortDirection;
-
-    //такие же названия должны быть на фронтэнде
+    private String email;
 }

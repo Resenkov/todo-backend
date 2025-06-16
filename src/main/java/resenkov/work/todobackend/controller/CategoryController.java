@@ -12,24 +12,13 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 
-/*
-
-Используем @RestController вместо обычного @Controller, чтобы все ответы сразу оборачивались в JSON,
-иначе пришлось бы добавлять лишние объекты в код, использовать @ResponseBody для ответа, указывать тип отправки JSON
-
-Названия методов могут быть любыми, главное не дублировать их имена внутри класса и URL mapping
-
-*/
 
 @RestController
 @RequestMapping("/category") // базовый URI
 public class CategoryController {
 
-    // доступ к данным из БД
     private CategoryService categoryService;
 
-    // автоматическое внедрение экземпляра класса через конструктор
-    // не используем @Autowired для переменной класса, т.к. "Field injection is not recommended "
     public CategoryController(CategoryService categoryService) {
         this.categoryService = categoryService;
     }
@@ -39,9 +28,6 @@ public class CategoryController {
         return categoryService.findAll(email);
     }
 
-
-
-    // Указываем POST так как у нас может быть неограниченное количество категорий, тк нет ограничений в БД
     @PostMapping("/add")
     public ResponseEntity<Categories> add(@RequestBody Categories categories) {
         if(categories.getId() != null && categories.getId() != 0) { // Означает что ID заполнено, значит он не новый, поэтому отклоняем

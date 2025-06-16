@@ -12,26 +12,9 @@ import resenkov.work.todobackend.entity.Task;
 import resenkov.work.todobackend.search.TaskSearchValues;
 import resenkov.work.todobackend.service.TaskService;
 
-import java.text.ParseException;
-import java.util.Calendar;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.NoSuchElementException;
-
-
-/**
-
-Чтобы дать меньше шансов для взлома (например, CSRF атак): POST/PUT запросы могут изменять/фильтровать закрытые данные, а GET запросы - для получения незащищенных данных
-Т.е. GET-запросы не должны использоваться для изменения/получения секретных данных
-
-Если возникнет exception - вернется код  500 Internal Server Error, поэтому не нужно все действия оборачивать в try-catch
-
-Используем @RestController вместо обычного @Controller, чтобы все ответы сразу оборачивались в JSON,
-иначе пришлось бы добавлять лишние объекты в код, использовать @ResponseBody для ответа, указывать тип отправки JSON
-
-Названия методов могут быть любыми, главное не дублировать их имена и URL mapping
-
-**/
 
 @RestController
 @RequestMapping("/task")
@@ -99,72 +82,48 @@ public class TaskController {
     }
 
     @PostMapping("/search")
-    public ResponseEntity<Page<Task>> search(@RequestBody TaskSearchValues taskSearchValues) throws ParseException{
-        String title =taskSearchValues.getTitle() != null ? taskSearchValues.getTitle() : null;
-
-        Integer completed = taskSearchValues.getCompleted() != null ? taskSearchValues.getCompleted() : null;
-
-        Long priorityId = taskSearchValues.getPriorityId() != null ? taskSearchValues.getPriorityId() : null;
-        Long categoryId = taskSearchValues.getCategoryId() != null ? taskSearchValues.getCategoryId() : null;
-
-        String sortColumn = taskSearchValues.getSortColumn() != null ? taskSearchValues.getSortColumn() : null;
-        String sortDirection = taskSearchValues.getSortDirection() != null ? taskSearchValues.getSortDirection() : null;
-
-        Integer pageNumber = taskSearchValues.getPageNumber() != null ? taskSearchValues.getPageNumber() : null;
-        Integer pageSize = taskSearchValues.getPageSize() != null ? taskSearchValues.getPageSize() : null;
-
-        String email = taskSearchValues.getEmail() != null ? taskSearchValues.getEmail() : null;
-
-
-        if(email == null || email.trim().length() == 0){
-            return new ResponseEntity("missed param: email", HttpStatus.NOT_ACCEPTABLE );
+    public ResponseEntity<Page<Task>> search(@RequestBody TaskSearchValues taskSearchValues) {
+        // 1. Проверяем email
+        String email = taskSearchValues.getEmail();
+        if (email == null || email.trim().isEmpty()) {
+            return new ResponseEntity("missed param: email", HttpStatus.NOT_ACCEPTABLE);
         }
 
-// чтобы захватить в выборке все задачи по датам, независимо от времени - можно выставить время с 00:00 до 23:59
-        Date dateFrom = null;
-        Date dateTo = null;
+        // 2. Извлекаем все остальные поля
+        String title       = (taskSearchValues.getTitle()      != null) ? taskSearchValues.getTitle()     : null;
+        Boolean completed  = taskSearchValues.getCompleted();
+        Long priorityId    = taskSearchValues.getPriorityId();
+        Long categoryId    = taskSearchValues.getCategoryId();
+        String sortColumn  = taskSearchValues.getSortColumn();
+        String sortDir     = taskSearchValues.getSortDirection();
+        Integer pageNumber = taskSearchValues.getPageNumber() != null ? taskSearchValues.getPageNumber() : 0;
+        Integer pageSize   = taskSearchValues.getPageSize()   != null ? taskSearchValues.getPageSize()   : 10;
 
-        // выставить 00:00 для начальной даты (если она указана)
-        if(taskSearchValues.getDateFrom() != null){
-            Calendar calendarFrom = Calendar.getInstance();
-            calendarFrom.setTime(taskSearchValues.getDateFrom());
-            calendarFrom.set(Calendar.HOUR_OF_DAY, 0);
-            calendarFrom.set(Calendar.MINUTE, 0);
-            calendarFrom.set(Calendar.SECOND, 0);
-            calendarFrom.set(Calendar.MILLISECOND, 0);
+        // 3. Конвертируем LocalDate → java.sql.Date
+        LocalDate ldFrom = taskSearchValues.getDateFrom();
+        LocalDate ldTo   = taskSearchValues.getDateTo();
 
-            dateFrom = calendarFrom.getTime(); // записываем начальную дату с 00:00
-        }
+        // 4. Разбираем сортировку
+        Sort.Direction direction = (sortDir == null || sortDir.equalsIgnoreCase("asc"))
+                ? Sort.Direction.ASC
+                : Sort.Direction.DESC;
+        Sort sort = Sort.by(direction, (sortColumn == null ? "date" : sortColumn), ID_COLUMN);
 
-        if(taskSearchValues.getDateTo() != null){
-            Calendar calendarTo = Calendar.getInstance();
-            calendarTo.setTime(taskSearchValues.getDateTo());
-            calendarTo.set(Calendar.HOUR_OF_DAY, 23);
-            calendarTo.set(Calendar.MINUTE, 59);
-            calendarTo.set(Calendar.SECOND, 59);
-            calendarTo.set(Calendar.MILLISECOND, 999);
-
-            dateTo = calendarTo.getTime();
-        }
-        // направление сортировки
-        Sort.Direction direction = sortDirection == null || sortDirection.trim().length() == 0 || sortDirection.trim().equals("asc") ? Sort.Direction.ASC : Sort.Direction.DESC;
-
-        /* Вторым полем для сортировки добавляем id, чтобы всегда сохранялся строгий порядок.
-            Например, если у 2-х задач одинаковое значение приоритета и мы сортируем по этому полю.
-            Порядок следования этих 2-х записей после выполнения запроса может каждый раз меняться, т.к. не указано второе поле сортировки.
-            Поэтому и используем ID - тогда все записи с одинаковым значением приоритета будут следовать в одном порядке по ID.
-         */
-
-        // объект сортировки, который содержит стобец и направление
-        Sort  sort = Sort.by(direction, sortColumn, ID_COLUMN);
-
-        // объект постраничности
+        // 5. Строим PageRequest
         PageRequest pageRequest = PageRequest.of(pageNumber, pageSize, sort);
 
-        // результат запроса с постраничным выводом
-        Page<Task> result = taskService.findByParams(title, completed, priorityId, categoryId, email, dateFrom, dateTo, pageRequest);
+        // 6. Вызываем сервис
+        Page<Task> result = taskService.findByParams(
+                title,
+                completed,
+                priorityId,
+                categoryId,
+                email,
+                ldFrom,
+                ldTo,
+                pageRequest
+        );
 
-        // результат запроса
         return ResponseEntity.ok(result);
     }
 

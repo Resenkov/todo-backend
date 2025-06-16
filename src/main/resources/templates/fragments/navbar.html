@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary" th:fragment="navbar">
+    <div class="container">
+        <a class="navbar-brand" href="#" th:href="@{/tasks}">Task Manager</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${currentPath == '/tasks'} ? 'active'"
+                       th:href="@{/tasks}">Задачи</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${currentPath == '/categories'} ? 'active'"
+                       th:href="@{/categories}">Категории</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link"
+                       th:classappend="${currentPath == '/priorities'} ? 'active'"
+                       th:href="@{/priorities}">Приоритеты</a>
+                </li>
+            </ul>
+            <span class="navbar-text me-3" th:text="${session.email}">user@example.com</span>
+            <form th:action="@{/logout}" method="post">
+                <button class="btn btn-outline-light" type="submit">Выйти</button>
+            </form>
+        </div>
+    </div>
+</nav>
+</body>
+</html>

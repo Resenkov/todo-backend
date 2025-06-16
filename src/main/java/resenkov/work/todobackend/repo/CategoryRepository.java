@@ -21,5 +21,3 @@ public interface CategoryRepository extends JpaRepository<Categories, Long> {
     List<Categories> findByTitle(@Param("title") String title, @Param("email") String email);
 
 }
-// Вы можете уже сразу использовать все методы CRUD (Create, Read, Update, Delete)
-// принцип ООП: абстракция-реализация - здесь описываем все доступные способы доступа к данным
