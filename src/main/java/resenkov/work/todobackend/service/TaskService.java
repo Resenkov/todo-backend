@@ -59,8 +59,33 @@ public class TaskService {
     }
 
 
-    public Page<Task> findByParams(String text, Boolean completed, Long priorityId, Long categoryId, String email, LocalDate dateFrom, LocalDate dateTo, Pageable paging) {
-        return repository.findByParams(text, completed, priorityId, categoryId, email, dateFrom, dateTo, paging);
+    public Page<Task> findByParams(
+            String title,
+            Boolean completed,
+            Long priorityId,
+            Long categoryId,
+            String email,
+            LocalDate dateFrom,
+            LocalDate dateTo,
+            Pageable pageable
+    ) {
+        if (dateFrom == null) {
+            dateFrom = LocalDate.of(1900, 1, 1); // Безопасная минимальная дата
+        }
+        if (dateTo == null) {
+            dateTo = LocalDate.of(2100, 1, 1); // Безопасная максимальная дата
+        }
+
+        return repository.findByParams(
+                title,
+                completed,
+                priorityId,
+                categoryId,
+                email,
+                dateFrom,
+                dateTo,
+                pageable
+        );
     }
 
     public Task findById(Long id) {
