@@ -83,13 +83,10 @@ public class TaskController {
 
     @PostMapping("/search")
     public ResponseEntity<Page<Task>> search(@RequestBody TaskSearchValues taskSearchValues) {
-        // 1. Проверяем email
         String email = taskSearchValues.getEmail();
         if (email == null || email.trim().isEmpty()) {
             return new ResponseEntity("missed param: email", HttpStatus.NOT_ACCEPTABLE);
         }
-
-        // 2. Извлекаем все остальные поля
         String title       = (taskSearchValues.getTitle()      != null) ? taskSearchValues.getTitle()     : null;
         Boolean completed  = taskSearchValues.getCompleted();
         Long priorityId    = taskSearchValues.getPriorityId();
@@ -99,20 +96,16 @@ public class TaskController {
         Integer pageNumber = taskSearchValues.getPageNumber() != null ? taskSearchValues.getPageNumber() : 0;
         Integer pageSize   = taskSearchValues.getPageSize()   != null ? taskSearchValues.getPageSize()   : 10;
 
-        // 3. Конвертируем LocalDate → java.sql.Date
         LocalDate ldFrom = taskSearchValues.getDateFrom();
         LocalDate ldTo   = taskSearchValues.getDateTo();
 
-        // 4. Разбираем сортировку
         Sort.Direction direction = (sortDir == null || sortDir.equalsIgnoreCase("asc"))
                 ? Sort.Direction.ASC
                 : Sort.Direction.DESC;
         Sort sort = Sort.by(direction, (sortColumn == null ? "date" : sortColumn), ID_COLUMN);
 
-        // 5. Строим PageRequest
         PageRequest pageRequest = PageRequest.of(pageNumber, pageSize, sort);
 
-        // 6. Вызываем сервис
         Page<Task> result = taskService.findByParams(
                 title,
                 completed,
